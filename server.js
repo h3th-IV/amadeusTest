@@ -28,113 +28,82 @@ app.get('/search-flights', async (req, res) => {
   }
 });
 
-//confirm Flight Price
-app.post('/confirm-price', async (req, res) => {
-  const { flightOffers } = req.body;
-  
-  try {
-    const response = await amadeus.shopping.flightOffers.pricing.post(
-      JSON.stringify({ data: { type: 'flight-offers-pricing', flightOffers } })
-    );
-    res.status(200).json(response.data);
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-});
+//city and airport search
+app.get('/city-airport/:cityAirport', async (req, res) => {
+  const { cityAirport } = req.params;
 
-//create a Flight Booking
-app.post('/create-booking', async (req, res) => {
-  const { flightOffers, travelers } = req.body;
-  
-  try {
-    const response = await amadeus.booking.flightOrders.post(
-      JSON.stringify({
-        data: {
-          type: 'flight-order',
-          flightOffers,
-          travelers,
-        },
-      })
-    );
-    res.status(201).json(response.data);
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-});
-
-//retrieve Flight Order
-app.get('/flight-order/:id', async (req, res) => {
-  const { id } = req.params;
-  
-  try {
-    const response = await amadeus.booking.flightOrder(id).get();
-    res.status(200).json(response.data);
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-});
-
-//retrieve Seat Maps
-app.post('/seatmaps', async (req, res) => {
-  const { flightOffers } = req.body;
-
-  try {
-    const response = await amadeus.shopping.seatmaps.post(
-      JSON.stringify({ data: flightOffers })
-    );
-    res.status(200).json(response.data);
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-});
-
-//lookup Airline Information
-app.get('/airline-info', async (req, res) => {
-  const { airlineCode } = req.query;
-
-  try {
-    const response = await amadeus.referenceData.airlines.get({
-      airlineCodes: airlineCode,
-    });
-    res.status(200).json(response.data);
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-});
-
-//search for Airports or Cities
-app.get('/search-airports', async (req, res) => {
-  const { keyword } = req.query;
-
-  if (!keyword) {
-    return res.status(400).json({ error: 'Please provide a keyword for searching.' });
-  }
-
-  try {
+  try{
     const response = await amadeus.referenceData.locations.get({
-      keyword,
-      subType: 'AIRPORT,CITY'
+      keyword: cityAirport,
+      subType: Amadeus.location.any,
     });
     res.status(200).json(response.data);
-  } catch (error) {
+  } catch(error){
+    console.log(error);
     res.status(500).json({ error: error.message });
   }
-});
+})
 
-//retrieve Airline Check-in Links
-app.get('/checkin-links', async (req, res) => {
-  const { airlineCode } = req.query;
+//getAirport routes
+app.get('/airport-routes', async (req, res) => {
+  const { departureAiportCode } = req.query;
 
   try {
-    const response = await amadeus.referenceData.urls.checkinLinks.get({
+    const response = await amadeus.airport.directDestinations.get({
+      departureAiportCode: departureAiportCode,
+    })
+    res.status(200).json(response.data);
+  } catch (error) {
+    console.log(error);
+    res.status(500).json({ error: error.message });
+  }
+})
+
+//airline routes, fina all destination for this airline
+app.get('/airline-destination/:airlineCode', async (req, res) => {
+  const { airlineCode } = req.params;
+
+  try {
+    const response = await amadeus.airlines.destinations.get({
       airlineCode,
     });
     res.status(200).json(response.data);
   } catch (error) {
+    console.log(error);
     res.status(500).json({ error: error.message });
   }
-});
+})
 
+//flight inspiration
+app.get('/flight-inspiration/:origin', async (req, res) => {
+  const { origin } = req.params; //the city which the flight will depart
+
+  try {
+    const response = await amadeus.shopping.flightDestination.get({
+      origin: origin,
+    })
+    res.status(200).json(response.data);
+  } catch (error) {
+    console.log(error);
+    res.status(500).json({ error: error.message });
+  }
+})
+
+//cheapest date search
+app.get('/cheapest-date', async (req, res) => {
+  const { origin, destination } = req.params;
+
+  try {
+    const response = await amadeus.shopping.flightDates.get({
+      origin: origin,
+      destination: destination,
+    });
+    res.status(200).json(response.data);
+  } catch (error) {
+    console.log(error);
+    res.status(500).json({ error: error.message });
+  }
+})
 app.listen(PORT, () => {
-  console.log(`Flight booking server is running on http://localhost:${PORT}`);
+  console.log(`listening and serving: ${PORT}`);
 });
